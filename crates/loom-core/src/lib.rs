@@ -12,16 +12,27 @@
 //! - Resource limits prevent DoS attacks (see [`security`] module)
 //! - No unsafe code without explicit safety documentation
 //! - Input validation at all system boundaries
+//!
+//! # Performance
+//!
+//! This crate is optimized for low-latency rendering:
+//! - Zero allocations in the render hot path
+//! - Efficient data structures with O(1) lookups (see [`types`] module)
+//! - Frame timing and stutter detection (see [`perf`] module)
 
 pub mod backend;
 pub mod compositor;
 mod handlers;
 pub mod input;
+pub mod perf;
 pub mod security;
 pub mod state;
+pub mod types;
 
 pub use compositor::Compositor;
+pub use perf::FrameTimer;
 pub use state::LoomState;
+pub use types::{WindowFlags, WindowId};
 
 use thiserror::Error;
 

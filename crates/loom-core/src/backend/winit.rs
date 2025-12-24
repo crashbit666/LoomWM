@@ -8,7 +8,15 @@
 //! - This backend is intended for development only
 //! - It runs with the same privileges as the parent compositor
 //! - Resource limits from [`crate::security`] are still enforced
+//!
+//! # Performance
+//!
+//! - Uses damage tracking to minimize GPU work
+//! - Pre-allocated element vector to avoid per-frame allocations
+//! - Frame timing with stutter detection
 
+use crate::perf::{FrameTimer, TARGET_FRAME_TIME_60FPS};
+use crate::types::SmallVec16;
 use crate::{CoreError, Result};
 use smithay::{
     backend::{
@@ -23,13 +31,13 @@ use smithay::{
     utils::{Physical, Size, Transform},
 };
 use std::time::Duration;
-use tracing::{debug, error, info, warn};
-
-/// Frame time target for 60 FPS (in milliseconds)
-const FRAME_TIME_MS: u64 = 16;
+use tracing::{debug, error, info, trace, warn};
 
 /// Background color (dark gray) - RGBA as f32 [0.0, 1.0]
 const BACKGROUND_COLOR: [f32; 4] = [0.1, 0.1, 0.1, 1.0];
+
+/// Log performance stats every N frames
+const PERF_LOG_INTERVAL: u64 = 300; // Every 5 seconds at 60 FPS
 
 /// Run the compositor using the Winit backend
 pub fn run() -> Result<()> {
@@ -54,6 +62,16 @@ pub fn run() -> Result<()> {
     // Create damage tracker for efficient rendering
     let mut damage_tracker = OutputDamageTracker::from_output(&output);
 
+    // Create frame timer for performance monitoring
+    let mut frame_timer = FrameTimer::new();
+
+    // Pre-allocate element vector to avoid per-frame allocations
+    // Using SmallVec to keep small lists on the stack
+    let mut elements: SmallVec16<WaylandSurfaceRenderElement<GlowRenderer>> = SmallVec16::new();
+
+    // Frame counter for periodic logging
+    let mut frame_count: u64 = 0;
+
     // Loop state
     let loop_signal = event_loop.get_signal();
     let mut data = LoopData {
@@ -73,19 +91,56 @@ pub fn run() -> Result<()> {
 
     // Main loop
     while data.running {
+        frame_timer.begin_frame();
+
         // Dispatch events with timeout for frame pacing
         event_loop
-            .dispatch(Some(Duration::from_millis(FRAME_TIME_MS)), &mut data)
+            .dispatch(
+                Some(Duration::from_micros(
+                    TARGET_FRAME_TIME_60FPS.as_micros() as u64
+                )),
+                &mut data,
+            )
             .map_err(|e| CoreError::EventLoop(format!("Event loop error: {e}")))?;
 
         // Render frame
-        if let Err(e) = render_frame(&mut backend, &output, &mut damage_tracker) {
+        // Clear elements from previous frame (doesn't deallocate)
+        elements.clear();
+
+        if let Err(e) = render_frame(&mut backend, &output, &mut damage_tracker, &elements) {
             error!("Render error: {}", e);
             // Don't crash on render errors, just skip frame
         }
+
+        // Record frame time and check for stutters
+        let is_stutter = frame_timer.end_frame();
+        if is_stutter {
+            let stats = frame_timer.stats();
+            warn!(
+                "Frame stutter detected: {:?} (target: {:?})",
+                stats.last_frame_time,
+                frame_timer.target_frame_time()
+            );
+        }
+
+        // Periodic performance logging
+        frame_count += 1;
+        if frame_count.is_multiple_of(PERF_LOG_INTERVAL) {
+            let stats = frame_timer.stats();
+            info!(
+                "Performance: {:.1} FPS, avg frame: {:?}, stutters: {}",
+                stats.fps, stats.avg_frame_time, stats.stutter_count
+            );
+        }
     }
 
-    info!("Winit backend shutting down");
+    // Final stats
+    let stats = frame_timer.stats();
+    info!(
+        "Winit backend shutting down. Final stats: {:.1} FPS avg, {} stutters",
+        stats.fps, stats.stutter_count
+    );
+
     Ok(())
 }
 
@@ -96,6 +151,7 @@ struct LoopData {
 }
 
 /// Handle Winit window events
+#[inline]
 fn handle_winit_event(event: WinitEvent, data: &mut LoopData) {
     match event {
         WinitEvent::Resized { size, scale_factor } => {
@@ -108,7 +164,7 @@ fn handle_winit_event(event: WinitEvent, data: &mut LoopData) {
             debug!("Window focus: {}", focused);
         }
         WinitEvent::Input(input_event) => {
-            debug!("Input event: {:?}", input_event);
+            trace!("Input event: {:?}", input_event);
             // TODO: Forward to input handler
         }
         WinitEvent::Redraw => {
@@ -123,6 +179,7 @@ fn handle_winit_event(event: WinitEvent, data: &mut LoopData) {
 }
 
 /// Create an output representing the Winit window
+#[inline]
 fn create_output(size: Size<i32, Physical>) -> Output {
     let mode = Mode {
         size,
@@ -149,14 +206,18 @@ fn create_output(size: Size<i32, Physical>) -> Output {
 }
 
 /// Render a frame to the Winit backend
+///
+/// # Performance
+///
+/// This function is on the hot path and must avoid allocations.
+/// The elements slice is pre-allocated by the caller.
+#[inline]
 fn render_frame(
     backend: &mut WinitGraphicsBackend<GlowRenderer>,
     _output: &Output,
     damage_tracker: &mut OutputDamageTracker,
+    elements: &[WaylandSurfaceRenderElement<GlowRenderer>],
 ) -> Result<()> {
-    // No elements to render yet - just clear to background color
-    let elements: Vec<WaylandSurfaceRenderElement<GlowRenderer>> = vec![];
-
     // Bind the renderer and get framebuffer
     let (renderer, mut framebuffer) = backend
         .bind()
@@ -166,8 +227,8 @@ fn render_frame(
     let render_result = damage_tracker.render_output(
         renderer,
         &mut framebuffer,
-        0, // age - 0 means full redraw
-        &elements,
+        0, // age - 0 means full redraw for now
+        elements,
         BACKGROUND_COLOR,
     );
 

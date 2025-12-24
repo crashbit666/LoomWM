@@ -57,3 +57,40 @@ tracing = "0.1"
 thiserror = "2"
 serde = { version = "1", features = ["derive"] }
 toml = "0.8"
+
+# Performance & Memory Efficiency
+slotmap = "1.0"                    # O(1) stable IDs for windows/surfaces
+smallvec = { version = "1.13", features = ["union", "const_generics"] }  # Stack-allocated small vectors
+bitflags = "2.6"                   # Efficient boolean flag sets
+parking_lot = "0.12"               # Faster mutexes than std
+rustc-hash = "2.1"                 # Faster hasher for integer keys
+
+# ------------------------------------------------------------------------------
+# Release Profile - Maximum Performance
+# ------------------------------------------------------------------------------
+[profile.release]
+lto = "fat"              # Full link-time optimization across all crates
+codegen-units = 1        # Single codegen unit for best optimization
+opt-level = 3            # Maximum optimization
+strip = "symbols"        # Strip symbols to reduce binary size
+panic = "abort"          # Abort on panic (smaller binary, no unwinding)
+debug = false            # No debug info in release
+
+# ------------------------------------------------------------------------------
+# Release with Debug Info - For profiling
+# ------------------------------------------------------------------------------
+[profile.release-with-debug]
+inherits = "release"
+debug = true             # Keep debug symbols for profiling
+strip = "none"           # Don't strip for profiling
+
+# ------------------------------------------------------------------------------
+# Development Profile - Fast compilation
+# ------------------------------------------------------------------------------
+[profile.dev]
+opt-level = 0            # No optimization for fast compilation
+debug = true             # Full debug info
+
+# Optimize dependencies even in dev for acceptable perf
+[profile.dev.package."*"]
+opt-level = 2

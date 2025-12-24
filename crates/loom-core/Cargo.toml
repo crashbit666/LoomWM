@@ -42,3 +42,9 @@ loom-canvas = { path = "../loom-canvas" }
 # Utils
 tracing.workspace = true
 thiserror.workspace = true
+
+# Performance & Memory Efficiency
+slotmap.workspace = true           # O(1) stable IDs for windows/surfaces/clients
+smallvec.workspace = true          # Stack-allocated small vectors
+bitflags.workspace = true          # Efficient boolean flag sets
+rustc-hash.workspace = true        # Faster hasher for integer keys
