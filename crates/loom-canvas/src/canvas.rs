@@ -1,6 +1,6 @@
 //! The infinite canvas that holds all nodes
 
-use crate::{limits, CanvasError, Connection, Node, NodeId, Result, Viewport};
+use crate::{CanvasError, Connection, Node, NodeId, Result, Viewport, limits};
 use std::collections::HashMap;
 
 pub struct Canvas {
@@ -97,7 +97,7 @@ impl Canvas {
 
     /// Check if a coordinate is within valid bounds
     fn is_valid_coordinate(coord: f64) -> bool {
-        coord.is_finite() && coord >= limits::MIN_COORDINATE && coord <= limits::MAX_COORDINATE
+        coord.is_finite() && (limits::MIN_COORDINATE..=limits::MAX_COORDINATE).contains(&coord)
     }
 }
 

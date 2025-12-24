@@ -6,12 +6,12 @@
 //! - Generate UI elements based on context
 //! - Infer semantic connections between nodes
 
-pub mod intent;
 pub mod generator;
+pub mod intent;
 pub mod suggestions;
 
-pub use intent::{Intent, IntentParser};
 pub use generator::UiGenerator;
+pub use intent::{Intent, IntentParser};
 pub use suggestions::SuggestionEngine;
 
 use thiserror::Error;

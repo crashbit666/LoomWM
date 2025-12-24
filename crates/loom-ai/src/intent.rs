@@ -17,7 +17,10 @@ pub enum Intent {
     /// Focus on a specific node or content
     Focus { target: String },
     /// Create a new node
-    Create { node_type: String, content: Option<String> },
+    Create {
+        node_type: String,
+        content: Option<String>,
+    },
     /// Connect two nodes
     Connect { from: String, to: String },
     /// General query for the AI
@@ -57,21 +60,33 @@ impl IntentParser {
         let input_lower = input.to_lowercase();
 
         if input_lower.starts_with("open ") || input_lower.starts_with("launch ") {
-            let app = input.split_whitespace().skip(1).collect::<Vec<_>>().join(" ");
+            let app = input
+                .split_whitespace()
+                .skip(1)
+                .collect::<Vec<_>>()
+                .join(" ");
             return Ok(Intent::Launch { app });
         }
 
         if input_lower.starts_with("search ") || input_lower.starts_with("find ") {
-            let query = input.split_whitespace().skip(1).collect::<Vec<_>>().join(" ");
+            let query = input
+                .split_whitespace()
+                .skip(1)
+                .collect::<Vec<_>>()
+                .join(" ");
             return Ok(Intent::Search { query });
         }
 
         if input_lower.contains("arrange") || input_lower.contains("organize") {
-            return Ok(Intent::Arrange { pattern: ArrangePattern::Auto });
+            return Ok(Intent::Arrange {
+                pattern: ArrangePattern::Auto,
+            });
         }
 
         // Default to query
-        Ok(Intent::Query { question: input.to_string() })
+        Ok(Intent::Query {
+            question: input.to_string(),
+        })
     }
 }
 

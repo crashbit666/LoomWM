@@ -4,6 +4,7 @@
 
 use loom_canvas::Canvas;
 
+#[derive(Default)]
 pub struct LoomState {
     pub canvas: Canvas,
     // Will hold:

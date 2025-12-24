@@ -7,8 +7,8 @@
 //! where applications become nodes that can be arranged, connected,
 //! and manipulated spatially.
 
-use tracing::{info, error, Level};
-use tracing_subscriber::{fmt, EnvFilter};
+use tracing::{Level, error, info};
+use tracing_subscriber::{EnvFilter, fmt};
 
 fn main() {
     // Initialize logging
@@ -16,10 +16,7 @@ fn main() {
         .with_default_directive(Level::INFO.into())
         .from_env_lossy();
 
-    fmt()
-        .with_env_filter(filter)
-        .with_target(true)
-        .init();
+    fmt().with_env_filter(filter).with_target(true).init();
 
     info!("Starting LoomWM - Weaving your digital intent");
 

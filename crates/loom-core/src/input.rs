@@ -4,6 +4,7 @@
 
 use tracing::debug;
 
+#[derive(Default)]
 pub struct InputHandler {
     // Will hold libinput context
 }

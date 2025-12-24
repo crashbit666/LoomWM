@@ -7,13 +7,13 @@
 //! - Spatial memory layout
 
 pub mod canvas;
-pub mod node;
 pub mod connection;
+pub mod node;
 pub mod viewport;
 
 pub use canvas::Canvas;
-pub use node::{Node, NodeId, NodeType};
 pub use connection::Connection;
+pub use node::{Node, NodeId, NodeType};
 pub use viewport::Viewport;
 
 use thiserror::Error;

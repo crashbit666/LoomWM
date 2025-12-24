@@ -27,7 +27,11 @@ impl UiGenerator {
     pub fn generate_node(&mut self, content: &str, x: f64, y: f64) -> Option<Node> {
         let id = self.allocate_node_id()?;
 
-        debug!("Generating node {} for content length: {}", id, content.len());
+        debug!(
+            "Generating node {} for content length: {}",
+            id,
+            content.len()
+        );
 
         Some(
             Node::new(
@@ -48,7 +52,15 @@ impl UiGenerator {
         let id = self.allocate_node_id()?;
 
         Some(
-            Node::new(id, NodeType::Note { text: text.to_string() }, x, y).with_size(300.0, 200.0),
+            Node::new(
+                id,
+                NodeType::Note {
+                    text: text.to_string(),
+                },
+                x,
+                y,
+            )
+            .with_size(300.0, 200.0),
         )
     }
 }

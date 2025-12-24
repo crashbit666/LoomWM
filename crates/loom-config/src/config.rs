@@ -1,6 +1,6 @@
 //! Main configuration struct
 
-use crate::{keybindings::Keybinding, theme::Theme, ConfigError, Result};
+use crate::{ConfigError, Result, keybindings::Keybinding, theme::Theme};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::path::Path;
@@ -37,7 +37,10 @@ impl fmt::Debug for Config {
             .field("canvas", &self.canvas)
             .field("ai", &self.ai)
             .field("theme", &"[...]")
-            .field("keybindings", &format!("[{} bindings]", self.keybindings.len()))
+            .field(
+                "keybindings",
+                &format!("[{} bindings]", self.keybindings.len()),
+            )
             .finish()
     }
 }
@@ -119,7 +122,9 @@ impl fmt::Debug for AiConfig {
 impl AiConfig {
     /// Get API key from config or environment variable (env var takes precedence)
     pub fn get_api_key(&self) -> Option<String> {
-        std::env::var("LOOM_AI_API_KEY").ok().or_else(|| self.api_key.clone())
+        std::env::var("LOOM_AI_API_KEY")
+            .ok()
+            .or_else(|| self.api_key.clone())
     }
 }
 
@@ -139,9 +144,9 @@ impl Config {
     /// Load config from a specific path (must be within config directory)
     pub fn load_from(path: &Path) -> Result<Self> {
         // Security: Validate path is within allowed config directory
-        let canonical = path.canonicalize().map_err(|e| {
-            ConfigError::ReadError(format!("Cannot resolve path: {}", e))
-        })?;
+        let canonical = path
+            .canonicalize()
+            .map_err(|e| ConfigError::ReadError(format!("Cannot resolve path: {}", e)))?;
 
         let config_dir = crate::config_dir();
 
@@ -151,9 +156,9 @@ impl Config {
                 .map_err(|e| ConfigError::ReadError(e.to_string()))?;
         }
 
-        let canonical_config_dir = config_dir.canonicalize().map_err(|e| {
-            ConfigError::ReadError(format!("Cannot resolve config dir: {}", e))
-        })?;
+        let canonical_config_dir = config_dir
+            .canonicalize()
+            .map_err(|e| ConfigError::ReadError(format!("Cannot resolve config dir: {}", e)))?;
 
         if !canonical.starts_with(&canonical_config_dir) {
             return Err(ConfigError::SecurityViolation(format!(
@@ -184,15 +189,13 @@ impl Config {
 
         // Ensure directory exists
         if let Some(parent) = config_path.parent() {
-            std::fs::create_dir_all(parent)
-                .map_err(|e| ConfigError::ReadError(e.to_string()))?;
+            std::fs::create_dir_all(parent).map_err(|e| ConfigError::ReadError(e.to_string()))?;
         }
 
-        let content = toml::to_string_pretty(self)
-            .map_err(|e| ConfigError::ParseError(e.to_string()))?;
+        let content =
+            toml::to_string_pretty(self).map_err(|e| ConfigError::ParseError(e.to_string()))?;
 
-        std::fs::write(&config_path, content)
-            .map_err(|e| ConfigError::ReadError(e.to_string()))?;
+        std::fs::write(&config_path, content).map_err(|e| ConfigError::ReadError(e.to_string()))?;
 
         info!("Config saved to: {:?}", config_path);
         Ok(())

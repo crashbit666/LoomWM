@@ -1,1 +1,49 @@
+# Build artifacts
 /target
+**/target
+
+# Cargo lock for libraries (keep for binary)
+# Cargo.lock  # We keep this for reproducible builds
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment and secrets
+.env
+.env.*
+*.pem
+*.key
+secrets/
+credentials/
+
+# Config with potential secrets (local overrides)
+config.local.toml
+
+# Logs
+*.log
+logs/
+
+# Debug
+*.dSYM/
+core
+vgcore.*
+
+# Profiling
+perf.data
+perf.data.old
+flamegraph.svg
+
+# Test coverage
+*.profraw
+*.profdata
+coverage/
+lcov.info
+tarpaulin-report.html
