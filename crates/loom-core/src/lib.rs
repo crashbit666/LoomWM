@@ -15,6 +15,7 @@
 
 pub mod backend;
 pub mod compositor;
+mod handlers;
 pub mod input;
 pub mod security;
 pub mod state;
