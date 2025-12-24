@@ -13,8 +13,7 @@ use crate::{CoreError, Result};
 use smithay::{
     backend::{
         renderer::{
-            damage::OutputDamageTracker,
-            element::surface::WaylandSurfaceRenderElement,
+            damage::OutputDamageTracker, element::surface::WaylandSurfaceRenderElement,
             glow::GlowRenderer,
         },
         winit::{self, WinitEvent, WinitGraphicsBackend},
@@ -178,9 +177,7 @@ fn render_frame(
     match render_result {
         Ok(render_output_result) => {
             // Submit the frame with damage info
-            let damage = render_output_result
-                .damage
-                .map(|d| d.as_slice());
+            let damage = render_output_result.damage.map(|d| d.as_slice());
             backend
                 .submit(damage)
                 .map_err(|e| CoreError::Renderer(format!("Failed to submit frame: {e}")))?;
