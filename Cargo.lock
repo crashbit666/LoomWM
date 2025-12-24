@@ -849,6 +849,7 @@ version = "0.1.0"
 dependencies = [
  "bitflags 2.10.0",
  "calloop 0.14.3",
+ "libc",
  "loom-canvas",
  "loom-config",
  "rustc-hash",

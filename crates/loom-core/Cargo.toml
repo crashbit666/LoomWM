@@ -42,6 +42,7 @@ loom-canvas = { path = "../loom-canvas" }
 # Utils
 tracing.workspace = true
 thiserror.workspace = true
+libc = "0.2"
 
 # Performance & Memory Efficiency
 slotmap.workspace = true           # O(1) stable IDs for windows/surfaces/clients
