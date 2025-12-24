@@ -16,7 +16,7 @@
 //! - Frame timing with stutter detection
 
 use crate::perf::{FrameTimer, TARGET_FRAME_TIME_60FPS};
-use crate::types::SmallVec16;
+use crate::state::LoomState;
 use crate::{CoreError, Result};
 use smithay::{
     backend::{
@@ -26,8 +26,9 @@ use smithay::{
         },
         winit::{self, WinitEvent, WinitGraphicsBackend},
     },
+    desktop::space::SpaceRenderElements,
     output::{Mode, Output, PhysicalProperties, Subpixel},
-    reexports::calloop::{EventLoop, LoopSignal},
+    reexports::{calloop::EventLoop, wayland_server::Display},
     utils::{Physical, Size, Transform},
 };
 use std::time::Duration;
@@ -43,9 +44,29 @@ const PERF_LOG_INTERVAL: u64 = 300; // Every 5 seconds at 60 FPS
 pub fn run() -> Result<()> {
     info!("Starting Winit backend...");
 
-    // Create the event loop
-    let mut event_loop: EventLoop<LoopData> =
+    // Create the event loop with LoomState as the data type
+    let mut event_loop: EventLoop<LoomState> =
         EventLoop::try_new().map_err(|e| CoreError::EventLoop(e.to_string()))?;
+
+    // Create Wayland display
+    let display: Display<LoomState> = Display::new()
+        .map_err(|e| CoreError::BackendInit(format!("Failed to create display: {e}")))?;
+
+    // Create compositor state
+    let mut state = LoomState::new(display, event_loop.handle())
+        .map_err(|e| CoreError::BackendInit(format!("Failed to create state: {e}")))?;
+
+    // Create another display for socket registration
+    // (the first one was consumed by LoomState::new)
+    let mut display: Display<LoomState> = Display::new()
+        .map_err(|e| CoreError::BackendInit(format!("Failed to create display: {e}")))?;
+
+    // Register Wayland socket
+    let socket_name = state
+        .register_socket(&mut display)
+        .map_err(|e| CoreError::BackendInit(format!("Failed to register socket: {e}")))?;
+
+    info!("Wayland socket: {}", socket_name);
 
     // Initialize Winit backend
     let (mut backend, winit_event_source) = winit::init::<GlowRenderer>()
@@ -59,38 +80,34 @@ pub fn run() -> Result<()> {
     let output = create_output(size);
     debug!("Output created: {:?}", output.name());
 
+    // Add output to space
+    state.space.map_output(&output, (0, 0));
+
     // Create damage tracker for efficient rendering
     let mut damage_tracker = OutputDamageTracker::from_output(&output);
 
     // Create frame timer for performance monitoring
     let mut frame_timer = FrameTimer::new();
 
-    // Pre-allocate element vector to avoid per-frame allocations
-    // Using SmallVec to keep small lists on the stack
-    let mut elements: SmallVec16<WaylandSurfaceRenderElement<GlowRenderer>> = SmallVec16::new();
-
     // Frame counter for periodic logging
     let mut frame_count: u64 = 0;
-
-    // Loop state
-    let loop_signal = event_loop.get_signal();
-    let mut data = LoopData {
-        running: true,
-        loop_signal: loop_signal.clone(),
-    };
 
     // Insert Winit event source into the event loop
     event_loop
         .handle()
-        .insert_source(winit_event_source, move |event, _, data| {
-            handle_winit_event(event, data);
+        .insert_source(winit_event_source, move |event, _, state| {
+            handle_winit_event(event, state);
         })
         .map_err(|e| CoreError::EventLoop(format!("Failed to insert Winit source: {e}")))?;
 
     info!("Entering main event loop");
+    info!(
+        "To connect a client, run: WAYLAND_DISPLAY={} <client>",
+        socket_name
+    );
 
     // Main loop
-    while data.running {
+    while state.running {
         frame_timer.begin_frame();
 
         // Dispatch events with timeout for frame pacing
@@ -99,18 +116,23 @@ pub fn run() -> Result<()> {
                 Some(Duration::from_micros(
                     TARGET_FRAME_TIME_60FPS.as_micros() as u64
                 )),
-                &mut data,
+                &mut state,
             )
             .map_err(|e| CoreError::EventLoop(format!("Event loop error: {e}")))?;
 
-        // Render frame
-        // Clear elements from previous frame (doesn't deallocate)
-        elements.clear();
+        // Process Wayland client requests
+        display
+            .dispatch_clients(&mut state)
+            .map_err(|e| CoreError::EventLoop(format!("Dispatch error: {e}")))?;
 
-        if let Err(e) = render_frame(&mut backend, &output, &mut damage_tracker, &elements) {
+        // Render frame
+        if let Err(e) = render_frame(&mut backend, &output, &mut damage_tracker, &mut state) {
             error!("Render error: {}", e);
             // Don't crash on render errors, just skip frame
         }
+
+        // Flush client events
+        display.flush_clients().ok();
 
         // Record frame time and check for stutters
         let is_stutter = frame_timer.end_frame();
@@ -128,8 +150,11 @@ pub fn run() -> Result<()> {
         if frame_count.is_multiple_of(PERF_LOG_INTERVAL) {
             let stats = frame_timer.stats();
             info!(
-                "Performance: {:.1} FPS, avg frame: {:?}, stutters: {}",
-                stats.fps, stats.avg_frame_time, stats.stutter_count
+                "Performance: {:.1} FPS, avg frame: {:?}, stutters: {}, clients: {}",
+                stats.fps,
+                stats.avg_frame_time,
+                stats.stutter_count,
+                state.client_count()
             );
         }
     }
@@ -144,21 +169,16 @@ pub fn run() -> Result<()> {
     Ok(())
 }
 
-/// Data passed through the event loop
-struct LoopData {
-    running: bool,
-    loop_signal: LoopSignal,
-}
-
 /// Handle Winit window events
 #[inline]
-fn handle_winit_event(event: WinitEvent, data: &mut LoopData) {
+fn handle_winit_event(event: WinitEvent, state: &mut LoomState) {
     match event {
         WinitEvent::Resized { size, scale_factor } => {
             debug!(
                 "Window resized to {}x{} (scale: {})",
                 size.w, size.h, scale_factor
             );
+            // TODO: Update output mode
         }
         WinitEvent::Focus(focused) => {
             debug!("Window focus: {}", focused);
@@ -172,8 +192,7 @@ fn handle_winit_event(event: WinitEvent, data: &mut LoopData) {
         }
         WinitEvent::CloseRequested => {
             info!("Window close requested");
-            data.running = false;
-            data.loop_signal.stop();
+            state.running = false;
         }
     }
 }
@@ -210,14 +229,22 @@ fn create_output(size: Size<i32, Physical>) -> Output {
 /// # Performance
 ///
 /// This function is on the hot path and must avoid allocations.
-/// The elements slice is pre-allocated by the caller.
 #[inline]
 fn render_frame(
     backend: &mut WinitGraphicsBackend<GlowRenderer>,
-    _output: &Output,
+    output: &Output,
     damage_tracker: &mut OutputDamageTracker,
-    elements: &[WaylandSurfaceRenderElement<GlowRenderer>],
+    state: &mut LoomState,
 ) -> Result<()> {
+    // Collect render elements from the space
+    let scale = output.current_scale().fractional_scale() as f32;
+    let elements: Vec<
+        SpaceRenderElements<GlowRenderer, WaylandSurfaceRenderElement<GlowRenderer>>,
+    > = state
+        .space
+        .render_elements_for_output(backend.renderer(), output, scale)
+        .map_err(|e| CoreError::Renderer(format!("Failed to get render elements: {e:?}")))?;
+
     // Bind the renderer and get framebuffer
     let (renderer, mut framebuffer) = backend
         .bind()
@@ -228,7 +255,7 @@ fn render_frame(
         renderer,
         &mut framebuffer,
         0, // age - 0 means full redraw for now
-        elements,
+        &elements,
         BACKGROUND_COLOR,
     );
 
@@ -242,6 +269,16 @@ fn render_frame(
             backend
                 .submit(damage)
                 .map_err(|e| CoreError::Renderer(format!("Failed to submit frame: {e}")))?;
+
+            // Send frame callbacks to clients
+            let time = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default();
+            state.space.elements().for_each(|window| {
+                window.send_frame(output, time, Some(Duration::ZERO), |_, _| {
+                    Some(output.clone())
+                });
+            });
         }
         Err(e) => {
             warn!("Render output failed: {:?}", e);

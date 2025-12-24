@@ -15,4 +15,4 @@ tracing.workspace = true
 thiserror.workspace = true
 
 # Paths
-dirs = "6"
+dirs = "6.0.0"

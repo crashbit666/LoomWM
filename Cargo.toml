@@ -30,11 +30,11 @@ loom-ai = { path = "crates/loom-ai" }
 loom-config = { path = "crates/loom-config" }
 
 # Logging
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
 
 # Async runtime (per futures events)
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1.48.0", features = ["full"] }
 
 [workspace.package]
 version = "0.1.0"
@@ -45,51 +45,54 @@ license = "GPL-3.0-or-later"
 # Smithay ecosystem (v0.7.0 is latest)
 smithay = { version = "0.7", default-features = false }
 smithay-drm-extras = "0.1"
-wayland-server = "0.31"
-wayland-protocols = { version = "0.32", features = ["server"] }
+wayland-server = "0.31.10"
+wayland-protocols = { version = "0.32.9", features = ["server"] }
 
 # Input/Output
-drm = "0.14"
+drm = "0.14.1"
 gbm = "0.18"
 
 # Utils
-tracing = "0.1"
-thiserror = "2"
-serde = { version = "1", features = ["derive"] }
-toml = "0.8"
+tracing = "0.1.44"
+thiserror = "2.0.17"
+serde = { version = "1.0.228", features = ["derive"] }
+toml = "0.9.8"
 
 # Performance & Memory Efficiency
-slotmap = "1.0"                    # O(1) stable IDs for windows/surfaces
-smallvec = { version = "1.13", features = ["union", "const_generics"] }  # Stack-allocated small vectors
-bitflags = "2.6"                   # Efficient boolean flag sets
-parking_lot = "0.12"               # Faster mutexes than std
-rustc-hash = "2.1"                 # Faster hasher for integer keys
+slotmap = "1.1.1" # O(1) stable IDs for windows/surfaces
+smallvec = { version = "1.15.1", features = [
+    "union",
+    "const_generics",
+] } # Stack-allocated small vectors
+bitflags = "2.10.0" # Efficient boolean flag sets
+parking_lot = "0.12.5" # Faster mutexes than std
+rustc-hash = "2.1.1" # Faster hasher for integer keys
 
 # ------------------------------------------------------------------------------
 # Release Profile - Maximum Performance
 # ------------------------------------------------------------------------------
 [profile.release]
-lto = "fat"              # Full link-time optimization across all crates
-codegen-units = 1        # Single codegen unit for best optimization
-opt-level = 3            # Maximum optimization
-strip = "symbols"        # Strip symbols to reduce binary size
-panic = "abort"          # Abort on panic (smaller binary, no unwinding)
-debug = false            # No debug info in release
+lto = "fat"       # Full link-time optimization across all crates
+codegen-units = 1 # Single codegen unit for best optimization
+opt-level = 3     # Maximum optimization
+strip = "symbols" # Strip symbols to reduce binary size
+panic = "abort"   # Abort on panic (smaller binary, no unwinding)
+debug = false     # No debug info in release
 
 # ------------------------------------------------------------------------------
 # Release with Debug Info - For profiling
 # ------------------------------------------------------------------------------
 [profile.release-with-debug]
 inherits = "release"
-debug = true             # Keep debug symbols for profiling
-strip = "none"           # Don't strip for profiling
+debug = true         # Keep debug symbols for profiling
+strip = "none"       # Don't strip for profiling
 
 # ------------------------------------------------------------------------------
 # Development Profile - Fast compilation
 # ------------------------------------------------------------------------------
 [profile.dev]
-opt-level = 0            # No optimization for fast compilation
-debug = true             # Full debug info
+opt-level = 0 # No optimization for fast compilation
+debug = true  # Full debug info
 
 # Optimize dependencies even in dev for acceptable perf
 [profile.dev.package."*"]
