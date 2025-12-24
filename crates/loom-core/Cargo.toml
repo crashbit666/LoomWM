@@ -5,19 +5,35 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 
+[features]
+default = []
+
+# Backend features - enabled by root crate
+backend-drm = [
+    "smithay/backend_drm",
+    "smithay/backend_gbm",
+    "smithay/backend_udev",
+    "smithay/backend_libinput",
+    "smithay/backend_session_libseat",
+    "dep:smithay-drm-extras",
+]
+backend-winit = [
+    "smithay/backend_winit",
+    "smithay/backend_egl",
+]
+
 [dependencies]
-# Smithay (features for v0.7)
+# Smithay - common features always needed
 smithay = { workspace = true, features = [
-    "backend_drm",
-    "backend_libinput",
-    "backend_udev",
-    "backend_session_libseat",
     "renderer_glow",
     "desktop",
     "wayland_frontend",
 ] }
-smithay-drm-extras.workspace = true
+smithay-drm-extras = { workspace = true, optional = true }
 wayland-server.workspace = true
+
+# Event loop
+calloop = "0.14"
 
 # Internal
 loom-config = { path = "../loom-config" }

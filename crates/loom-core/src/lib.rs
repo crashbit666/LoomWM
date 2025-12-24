@@ -5,10 +5,18 @@
 //! - libinput for input devices
 //! - Wayland protocol handling
 //! - Surface management
+//!
+//! # Security
+//!
+//! This crate follows security-by-default principles:
+//! - Resource limits prevent DoS attacks (see [`security`] module)
+//! - No unsafe code without explicit safety documentation
+//! - Input validation at all system boundaries
 
 pub mod backend;
 pub mod compositor;
 pub mod input;
+pub mod security;
 pub mod state;
 
 pub use compositor::Compositor;
@@ -29,6 +37,12 @@ pub enum CoreError {
 
     #[error("Input error: {0}")]
     Input(String),
+
+    #[error("No backend available - compile with 'drm' or 'winit' feature")]
+    NoBackendAvailable,
+
+    #[error("Event loop error: {0}")]
+    EventLoop(String),
 }
 
 pub type Result<T> = std::result::Result<T, CoreError>;

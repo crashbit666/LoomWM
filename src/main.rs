@@ -42,16 +42,8 @@ fn main() {
     }
 }
 
-fn run(config: loom_config::Config) -> Result<(), Box<dyn std::error::Error>> {
-    info!("Initializing compositor with config: {:?}", config.general);
-
-    // Create compositor
-    let mut compositor = loom_core::Compositor::new()?;
-
-    info!("Compositor initialized, starting event loop");
-
-    // Run the event loop
-    compositor.run()?;
-
+fn run(_config: loom_config::Config) -> Result<(), Box<dyn std::error::Error>> {
+    // Run compositor with auto-detected backend
+    loom_core::backend::run_auto()?;
     Ok(())
 }

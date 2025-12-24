@@ -16,6 +16,12 @@ description = "A fluid, AI-driven Wayland compositor - Weaving your digital inte
 license = "GPL-3.0-or-later"
 authors = ["crashbit"]
 
+[features]
+default = ["drm"]
+drm = ["loom-core/backend-drm"]
+winit = ["loom-core/backend-winit"]
+all-backends = ["drm", "winit"]
+
 [dependencies]
 loom-core = { path = "crates/loom-core" }
 loom-canvas = { path = "crates/loom-canvas" }

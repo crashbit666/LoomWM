@@ -12,8 +12,15 @@ env:
 
 jobs:
   check:
-    name: Check
+    name: Check (${{ matrix.features }})
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        features:
+          - ""  # default (drm)
+          - "--features winit --no-default-features"
+          - "--features all-backends"
+          - "--no-default-features"
     steps:
       - uses: actions/checkout@v4
 
@@ -38,9 +45,11 @@ jobs:
 
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.features }}
 
       - name: Check
-        run: cargo check --all-targets
+        run: cargo check --all-targets ${{ matrix.features }}
 
   test:
     name: Test
