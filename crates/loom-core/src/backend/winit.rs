@@ -15,6 +15,7 @@
 //! - Pre-allocated element vector to avoid per-frame allocations
 //! - Frame timing with stutter detection
 
+use crate::input::process_input_event;
 use crate::perf::{FrameTimer, TARGET_FRAME_TIME_60FPS};
 use crate::state::LoomState;
 use crate::{CoreError, Result};
@@ -32,7 +33,7 @@ use smithay::{
     utils::{Physical, Size, Transform},
 };
 use std::time::Duration;
-use tracing::{debug, error, info, trace, warn};
+use tracing::{debug, error, info, warn};
 
 /// Background color (dark gray) - RGBA as f32 [0.0, 1.0]
 const BACKGROUND_COLOR: [f32; 4] = [0.1, 0.1, 0.1, 1.0];
@@ -184,8 +185,8 @@ fn handle_winit_event(event: WinitEvent, state: &mut LoomState) {
             debug!("Window focus: {}", focused);
         }
         WinitEvent::Input(input_event) => {
-            trace!("Input event: {:?}", input_event);
-            // TODO: Forward to input handler
+            // Forward input events to the input handler
+            process_input_event(state, input_event);
         }
         WinitEvent::Redraw => {
             // Handled in main loop

@@ -8,6 +8,7 @@
 //! Resource limits from [`crate::security`] are enforced here to prevent
 //! denial of service attacks from malicious clients.
 
+use crate::input::Keybindings;
 use crate::security;
 use loom_canvas::Canvas;
 use smithay::{
@@ -20,6 +21,7 @@ use smithay::{
             backend::{ClientData, ClientId, DisconnectReason},
         },
     },
+    utils::{Logical, Point},
     wayland::{
         compositor::{CompositorClientState, CompositorState},
         output::OutputManagerState,
@@ -88,6 +90,12 @@ pub struct LoomState {
     /// Current cursor image status
     pub cursor_status: CursorImageStatus,
 
+    /// Current pointer location
+    pub pointer_location: Point<f64, Logical>,
+
+    /// Keybindings manager
+    pub keybindings: Keybindings,
+
     /// Whether the compositor should keep running
     pub running: bool,
 
@@ -123,9 +131,16 @@ impl LoomState {
 
         // Initialize seat (input devices)
         let mut seat_state = SeatState::new();
-        let seat = seat_state.new_wl_seat(&display_handle, "seat0");
+        let mut seat = seat_state.new_wl_seat(&display_handle, "seat0");
 
-        info!("Compositor state initialized");
+        // Add keyboard capability with default XKB config
+        seat.add_keyboard(Default::default(), 200, 25)
+            .map_err(|e| format!("Failed to add keyboard: {e}"))?;
+
+        // Add pointer capability
+        seat.add_pointer();
+
+        info!("Compositor state initialized with keyboard and pointer");
 
         Ok(Self {
             canvas: Canvas::new(),
@@ -139,6 +154,8 @@ impl LoomState {
             seat,
             space: Space::default(),
             cursor_status: CursorImageStatus::default_named(),
+            pointer_location: Point::from((0.0, 0.0)),
+            keybindings: Keybindings::new(),
             running: true,
             socket_name: None,
             client_count: 0,
