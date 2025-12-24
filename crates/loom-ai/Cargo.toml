@@ -1,0 +1,19 @@
+[package]
+name = "loom-ai"
+description = "AI integration for intent-driven UI generation"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+# Internal
+loom-canvas = { path = "../loom-canvas" }
+
+# Utils
+tracing.workspace = true
+thiserror.workspace = true
+serde.workspace = true
+
+# Future: AI integrations
+# reqwest = { version = "0.12", features = ["json"] }
+# async-openai = "0.25"

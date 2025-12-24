@@ -1,0 +1,12 @@
+[package]
+name = "loom-canvas"
+description = "Infinite canvas and node system for LoomWM"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+# Utils
+tracing.workspace = true
+thiserror.workspace = true
+serde.workspace = true

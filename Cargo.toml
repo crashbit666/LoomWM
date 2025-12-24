@@ -1,0 +1,53 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/loom-core",
+    "crates/loom-canvas",
+    "crates/loom-protocol",
+    "crates/loom-ai",
+    "crates/loom-config",
+]
+
+[package]
+name = "loom-wm"
+version = "0.1.0"
+edition = "2024"
+description = "A fluid, AI-driven Wayland compositor - Weaving your digital intent"
+license = "GPL-3.0-or-later"
+authors = ["crashbit"]
+
+[dependencies]
+loom-core = { path = "crates/loom-core" }
+loom-canvas = { path = "crates/loom-canvas" }
+loom-protocol = { path = "crates/loom-protocol" }
+loom-ai = { path = "crates/loom-ai" }
+loom-config = { path = "crates/loom-config" }
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Async runtime (per futures events)
+tokio = { version = "1", features = ["full"] }
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "GPL-3.0-or-later"
+
+[workspace.dependencies]
+# Smithay ecosystem (v0.7.0 is latest)
+smithay = { version = "0.7", default-features = false }
+smithay-drm-extras = "0.1"
+wayland-server = "0.31"
+wayland-protocols = { version = "0.32", features = ["server"] }
+
+# Input/Output
+drm = "0.14"
+gbm = "0.18"
+
+# Utils
+tracing = "0.1"
+thiserror = "2"
+serde = { version = "1", features = ["derive"] }
+toml = "0.8"

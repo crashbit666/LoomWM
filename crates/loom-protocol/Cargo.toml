@@ -1,0 +1,14 @@
+[package]
+name = "loom-protocol"
+description = "Custom Wayland protocol extensions for LoomWM"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+wayland-server.workspace = true
+wayland-protocols.workspace = true
+
+# Utils
+tracing.workspace = true
+thiserror.workspace = true

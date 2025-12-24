@@ -1,0 +1,28 @@
+[package]
+name = "loom-core"
+description = "Core Wayland compositor built on Smithay"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+# Smithay (features for v0.7)
+smithay = { workspace = true, features = [
+    "backend_drm",
+    "backend_libinput",
+    "backend_udev",
+    "backend_session_libseat",
+    "renderer_glow",
+    "desktop",
+    "wayland_frontend",
+] }
+smithay-drm-extras.workspace = true
+wayland-server.workspace = true
+
+# Internal
+loom-config = { path = "../loom-config" }
+loom-canvas = { path = "../loom-canvas" }
+
+# Utils
+tracing.workspace = true
+thiserror.workspace = true
